@@ -10,88 +10,123 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
-<body class="bg-slate-100 font-sans text-gray-800 pb-20 md:pb-0">
+<body class="bg-slate-100 font-sans text-gray-800 min-h-screen">
 
-    <!-- Mobile Top Header -->
-    <div class="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md md:hidden">
-        <h1 class="font-bold text-lg">👥 የአባላት ሲስተም</h1>
-        <span id="mobileRoleBadge" class="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-300 font-medium">አድሚን</span>
+    <!-- LOGIN SECTION -->
+    <div id="loginSection" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-md">
+            <div class="text-center mb-6">
+                <div class="inline-block p-3 bg-blue-100 rounded-full text-blue-600 mb-2">
+                    <span class="text-3xl">🔐</span>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800">ወደ ሲስተሙ ግባ</h2>
+                <p class="text-xs text-gray-500 mt-1">የተጠቃሚ ስም እና ይለፍ ቃል ያስገቡ</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">የተጠቃሚ ስም (Username)</label>
+                    <input type="text" id="loginUsername" required class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">ይለፍ ቃል (Password)</label>
+                    <input type="password" id="loginPassword" required class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <p id="loginError" class="text-rose-500 text-xs hidden font-medium text-center">የተጠቃሚ ስም ወይም ይለፍ ቃል ተሳስቷል!</p>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition">
+                    ግለጽ / Login
+                </button>
+            </form>
+        </div>
     </div>
 
-    <div class="flex flex-col md:flex-row h-screen overflow-hidden">
-        <!-- Sidebar for Desktop -->
-        <div class="hidden md:flex w-64 bg-slate-900 text-white flex-col justify-between p-5 shadow-xl">
-            <div>
-                <div class="flex items-center gap-3 mb-8">
-                    <div class="p-2 bg-blue-600 rounded-lg text-white font-bold text-xl">👥</div>
-                    <div>
-                        <h1 class="text-lg font-bold">የአባላት ሲስተም</h1>
-                        <span id="userRoleBadge" class="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-medium">አድሚን</span>
-                    </div>
-                </div>
-                <nav class="space-y-2">
-                    <button onclick="setActiveTab('all')" id="tab-all" class="w-full text-left px-4 py-3 bg-blue-600 rounded-lg font-medium shadow-md">
-                        📊 ሁሉም አባላት
-                    </button>
-                    <div class="pt-4 text-xs font-semibold text-slate-400 uppercase">የክፍሎች ዝርዝር</div>
-                    <div id="deptButtons" class="space-y-1 max-h-80 overflow-y-auto pr-1"></div>
-                </nav>
+    <!-- MAIN APP SECTION -->
+    <div id="appSection" class="hidden">
+        <!-- Mobile Top Header -->
+        <div class="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md md:hidden">
+            <h1 class="font-bold text-lg">👥 የአባላት ሲስተም</h1>
+            <div class="flex items-center gap-2">
+                <span id="mobileRoleBadge" class="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-300 font-medium">አድሚን</span>
+                <button onclick="logout()" class="text-xs bg-rose-600/80 px-2 py-1 rounded text-white">ውጣ</button>
             </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="flex-1 overflow-y-auto p-4 md:p-8">
-            <!-- Header Controls -->
-            <div class="flex flex-col gap-3 mb-6">
+        <div class="flex flex-col md:flex-row h-screen overflow-hidden">
+            <!-- Sidebar for Desktop -->
+            <div class="hidden md:flex w-64 bg-slate-900 text-white flex-col justify-between p-5 shadow-xl">
                 <div>
-                    <h2 id="pageTitle" class="text-xl md:text-2xl font-bold text-gray-800">የአባላት መከታተያ ዳሽቦርድ</h2>
-                    <p class="text-gray-500 text-xs md:text-sm">የአባላት ምደባ እና ሁኔታ መከታተያ</p>
+                    <div class="flex items-center gap-3 mb-8">
+                        <div class="p-2 bg-blue-600 rounded-lg text-white font-bold text-xl">👥</div>
+                        <div>
+                            <h1 class="text-lg font-bold">የአባላት ሲስተም</h1>
+                            <span id="userRoleBadge" class="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-medium">አድሚን</span>
+                        </div>
+                    </div>
+                    <nav class="space-y-2">
+                        <button onclick="setActiveTab('all')" id="tab-all" class="w-full text-left px-4 py-3 bg-blue-600 rounded-lg font-medium shadow-md">
+                            📊 ሁሉም አባላት
+                        </button>
+                        <div class="pt-4 text-xs font-semibold text-slate-400 uppercase">የክፍሎች ዝርዝር</div>
+                        <div id="deptButtons" class="space-y-1 max-h-80 overflow-y-auto pr-1"></div>
+                    </nav>
                 </div>
-                
-                <!-- Action Buttons -->
-                <div class="grid grid-cols-2 md:flex gap-2">
-                    <button id="addBtn" onclick="openAddModal()" class="bg-blue-600 active:bg-blue-700 text-white p-3 md:px-4 md:py-2.5 rounded-xl font-medium shadow-sm text-xs md:text-sm flex items-center justify-center gap-2">
-                        ➕ አባል መዝግብ
-                    </button>
-                    <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden" onchange="handleFile(event)">
-                    <button id="uploadBtn" onclick="document.getElementById('excelFile').click()" class="bg-emerald-600 active:bg-emerald-700 text-white p-3 md:px-4 md:py-2.5 rounded-xl font-medium shadow-sm text-xs md:text-sm flex items-center justify-center gap-2">
-                        📁 Excel ጫን
-                    </button>
-                    <!-- NEW EXCEL DOWNLOAD BUTTON -->
-                    <button onclick="exportToExcel()" class="bg-slate-800 active:bg-slate-900 text-white p-3 md:px-4 md:py-2.5 rounded-xl font-medium shadow-sm text-xs md:text-sm flex items-center justify-center gap-2">
-                        📥 Excel አውርድ
-                    </button>
-                </div>
+                <button onclick="logout()" class="w-full bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2">
+                    🚪 ውጣ (Logout)
+                </button>
             </div>
 
-            <!-- Summary Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200">
-                    <p class="text-gray-500 text-xs font-medium">ጠቅላላ</p>
-                    <h3 id="totalCount" class="text-xl md:text-3xl font-bold text-slate-800 mt-1">0</h3>
+            <!-- Main Content -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-8">
+                <!-- Header Controls -->
+                <div class="flex flex-col gap-3 mb-6">
+                    <div>
+                        <h2 id="pageTitle" class="text-xl md:text-2xl font-bold text-gray-800">የአባላት መከታተያ ዳሽቦርድ</h2>
+                        <p class="text-gray-500 text-xs md:text-sm">የአባላት ምደባ እና ሁኔታ መከታተያ</p>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="grid grid-cols-2 md:flex gap-2">
+                        <button id="addBtn" onclick="openAddModal()" class="admin-only bg-blue-600 active:bg-blue-700 text-white p-3 md:px-4 md:py-2.5 rounded-xl font-medium shadow-sm text-xs md:text-sm flex items-center justify-center gap-2">
+                            ➕ አባል መዝግብ
+                        </button>
+                        <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden" onchange="handleFile(event)">
+                        <button id="uploadBtn" onclick="document.getElementById('excelFile').click()" class="admin-only bg-emerald-600 active:bg-emerald-700 text-white p-3 md:px-4 md:py-2.5 rounded-xl font-medium shadow-sm text-xs md:text-sm flex items-center justify-center gap-2">
+                            📁 Excel ጫን
+                        </button>
+                        <button onclick="exportToExcel()" class="bg-slate-800 active:bg-slate-900 text-white p-3 md:px-4 md:py-2.5 rounded-xl font-medium shadow-sm text-xs md:text-sm flex items-center justify-center gap-2">
+                            📥 Excel አውርድ
+                        </button>
+                    </div>
                 </div>
-                <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200">
-                    <p class="text-gray-500 text-xs font-medium">የጀመሩ</p>
-                    <h3 id="startedCount" class="text-xl md:text-3xl font-bold text-emerald-600 mt-1">0</h3>
-                </div>
-                <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200">
-                    <p class="text-gray-500 text-xs font-medium">ያልጀመሩ</p>
-                    <h3 id="notStartedCount" class="text-xl md:text-3xl font-bold text-rose-500 mt-1">0</h3>
-                </div>
-                <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200">
-                    <p class="text-gray-500 text-xs font-medium">ፎርም የሞሉ</p>
-                    <h3 id="formCount" class="text-xl md:text-3xl font-bold text-blue-600 mt-1">0</h3>
-                </div>
-            </div>
 
-            <!-- Search Bar -->
-            <div class="mb-4">
-                <input type="text" id="searchInput" oninput="filterData()" placeholder="🔍 በስም ወይም በስልክ ቁጥር ፈልግ..." class="w-full border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-            </div>
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                    <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-gray-500 text-xs font-medium">ጠቅላላ</p>
+                        <h3 id="totalCount" class="text-xl md:text-3xl font-bold text-slate-800 mt-1">0</h3>
+                    </div>
+                    <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-gray-500 text-xs font-medium">የጀመሩ</p>
+                        <h3 id="startedCount" class="text-xl md:text-3xl font-bold text-emerald-600 mt-1">0</h3>
+                    </div>
+                    <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-gray-500 text-xs font-medium">ያልጀመሩ</p>
+                        <h3 id="notStartedCount" class="text-xl md:text-3xl font-bold text-rose-500 mt-1">0</h3>
+                    </div>
+                    <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-gray-500 text-xs font-medium">ፎርም የሞሉ</p>
+                        <h3 id="formCount" class="text-xl md:text-3xl font-bold text-blue-600 mt-1">0</h3>
+                    </div>
+                </div>
 
-            <!-- Cards View -->
-            <div id="membersContainer" class="space-y-3">
-                <div class="text-center py-8 text-gray-400">መረጃ በመጫን ላይ ነው...</div>
+                <!-- Search Bar -->
+                <div class="mb-4">
+                    <input type="text" id="searchInput" oninput="filterData()" placeholder="🔍 በስም ወይም በስልክ ቁጥር ፈልግ..." class="w-full border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+
+                <!-- Cards View -->
+                <div id="membersContainer" class="space-y-3">
+                    <div class="text-center py-8 text-gray-400">መረጃ በመጫን ላይ ነው...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -166,17 +201,63 @@
 
         let membersData = [];
         let currentFilterDept = 'all';
-        let isAdmin = true;
+        let currentUserRole = null; // 'admin' or 'caller'
 
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('role') === 'caller') {
-                isAdmin = false;
-                document.getElementById('userRoleBadge').innerText = "ደዋይ";
-                document.getElementById('mobileRoleBadge').innerText = "ደዋይ";
-            }
-            listenToRealtimeUpdates();
+        // Predefined Login Users (You can change passwords here)
+        const USERS = {
+            "admin": { pass: "admin123", role: "admin" },
+            "caller": { pass: "caller123", role: "caller" }
         };
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUsername').value.trim();
+            const p = document.getElementById('loginPassword').value.trim();
+            const errorMsg = document.getElementById('loginError');
+
+            if (USERS[u] && USERS[u].pass === p) {
+                currentUserRole = USERS[u].role;
+                errorMsg.classList.add('hidden');
+                
+                // Save session
+                localStorage.setItem('userRole', currentUserRole);
+                
+                startApp();
+            } else {
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        function checkSession() {
+            const savedRole = localStorage.getItem('userRole');
+            if (savedRole) {
+                currentUserRole = savedRole;
+                startApp();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('userRole');
+            location.reload();
+        }
+
+        function startApp() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('appSection').classList.remove('hidden');
+
+            const isA = currentUserRole === 'admin';
+            document.getElementById('userRoleBadge').innerText = isA ? "አድሚን" : "ደዋይ";
+            document.getElementById('mobileRoleBadge').innerText = isA ? "አድሚን" : "ደዋይ";
+
+            // Hide Admin Buttons if caller
+            document.querySelectorAll('.admin-only').forEach(el => {
+                if(!isA) el.classList.add('hidden');
+            });
+
+            listenToRealtimeUpdates();
+        }
+
+        window.onload = checkSession;
 
         // Realtime Sync
         function listenToRealtimeUpdates() {
@@ -212,6 +293,8 @@
                 container.innerHTML = `<div class="bg-white p-6 rounded-xl text-center text-gray-400 font-medium">ምንም አባል አልተገኘም።</div>`;
                 return;
             }
+
+            const isAdmin = currentUserRole === 'admin';
 
             data.forEach((item) => {
                 const isStarted = item.status && item.status.includes('ጀምረዋል');
@@ -252,6 +335,7 @@
         }
 
         function openAddModal() {
+            if(currentUserRole !== 'admin') return;
             document.getElementById('modalTitle').innerText = "አዲስ አባል መመዝገቢያ";
             document.getElementById('memberForm').reset();
             document.getElementById('memberId').value = "";
@@ -259,7 +343,7 @@
         }
 
         function openEditModal(id) {
-            if(!isAdmin) return;
+            if(currentUserRole !== 'admin') return;
             const member = membersData.find(m => m.id === id);
             if(!member) return;
 
@@ -280,6 +364,7 @@
 
         async function saveMember(e) {
             e.preventDefault();
+            if(currentUserRole !== 'admin') return;
             const id = document.getElementById('memberId').value;
             const data = {
                 name: document.getElementById('inputName').value,
@@ -291,7 +376,6 @@
             };
 
             if(id) {
-                if(!isAdmin) return;
                 await rtdb.ref('members/' + id).update(data);
             } else {
                 await rtdb.ref('members').push(data);
@@ -299,8 +383,8 @@
             closeModal();
         }
 
-        // Improved Excel Import Logic
         function handleFile(e) {
+            if(currentUserRole !== 'admin') return;
             const file = e.target.files[0];
             const reader = new FileReader();
             reader.onload = function(event) {
@@ -319,14 +403,12 @@
             data.forEach(row => {
                 const newKey = rtdb.ref().child('members').push().key;
 
-                // Handle status string properly
                 let rawStatus = String(row['ሁኔታ'] || row['Status'] || '').trim();
                 let parsedStatus = "አልጀመሩም";
                 if(rawStatus.includes('ጀምረዋል') || rawStatus.toLowerCase() === 'started' || rawStatus === '1') {
                     parsedStatus = "ጀምረዋል";
                 }
 
-                // Handle form string properly
                 let rawForm = String(row['ፎርም'] || row['Form'] || '').trim();
                 let parsedForm = "አልሞሉም";
                 if(rawForm.includes('ሞልተዋል') || rawForm.toLowerCase() === 'filled' || rawForm === '1') {
@@ -348,7 +430,6 @@
             });
         }
 
-        // Export Function to Download Excel File
         function exportToExcel() {
             if(membersData.length === 0) {
                 alert("የሚወርድ መረጃ የለም!");
