@@ -131,7 +131,7 @@
         </div>
     </div>
 
-    <!-- Modal Form -->
+    <!-- Modal Form (Admin Only) -->
     <div id="memberModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-end md:items-center justify-center p-0 md:p-4 z-50">
         <div class="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl max-w-lg w-full p-5 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b pb-3 mb-4">
@@ -174,6 +174,22 @@
                     <label class="block text-xs font-semibold text-gray-600 mb-1">ደዋይ / አስተባባሪ</label>
                     <input type="text" id="inputCaller" class="w-full border rounded-lg px-3 py-2 text-sm">
                 </div>
+
+                <!-- NEW ACCOUNT CREATION FOR USER -->
+                <div class="border-t pt-3 mt-3 bg-blue-50 p-3 rounded-xl border-blue-100">
+                    <p class="text-xs font-bold text-blue-800 mb-2">🔐 ለዚህ አባል የመግቢያ አካውንት ስጠው (ለደዋዮች)፦</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-600">Username</label>
+                            <input type="text" id="inputUsername" placeholder="ለአባሉ Username" class="w-full border rounded-lg px-2 py-1.5 text-xs bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-600">Password</label>
+                            <input type="text" id="inputPassword" placeholder="ለአባሉ Password" class="w-full border rounded-lg px-2 py-1.5 text-xs bg-white">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex justify-end gap-2 border-t pt-4 mt-4">
                     <button type="button" onclick="closeModal()" class="px-4 py-2.5 border rounded-xl text-sm font-medium">ሰርዝ</button>
                     <button type="submit" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium shadow-md">አስቀምጥ</button>
@@ -200,28 +216,31 @@
         const rtdb = firebase.database();
 
         let membersData = [];
+        let usersData = {};
         let currentFilterDept = 'all';
         let currentUserRole = null; // 'admin' or 'caller'
 
-        // Predefined Login Users (You can change passwords here)
-        const USERS = {
-            "admin": { pass: "admin123", role: "admin" },
-            "caller": { pass: "caller123", role: "caller" }
-        };
-
-        function handleLogin(e) {
+        async function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('loginUsername').value.trim();
             const p = document.getElementById('loginPassword').value.trim();
             const errorMsg = document.getElementById('loginError');
 
-            if (USERS[u] && USERS[u].pass === p) {
-                currentUserRole = USERS[u].role;
-                errorMsg.classList.add('hidden');
-                
-                // Save session
+            // Default Admin Check
+            if (u === 'admin' && p === 'admin123') {
+                currentUserRole = 'admin';
+                localStorage.setItem('userRole', 'admin');
+                startApp();
+                return;
+            }
+
+            // Check Firebase Users list
+            const snapshot = await rtdb.ref('users/' + u).once('value');
+            const userData = snapshot.val();
+
+            if (userData && userData.password === p) {
+                currentUserRole = userData.role || 'caller';
                 localStorage.setItem('userRole', currentUserRole);
-                
                 startApp();
             } else {
                 errorMsg.classList.remove('hidden');
@@ -302,6 +321,7 @@
                     ? `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-semibold">ጀምረዋል</span>`
                     : `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-xs font-semibold">አልጀመሩም</span>`;
 
+                // Edit Button visible ONLY for Admin
                 const editBtn = isAdmin 
                     ? `<button onclick="openEditModal('${item.id}')" class="text-blue-600 font-bold text-xs bg-blue-50 px-3 py-1.5 rounded-lg">✏️ ኤዲት</button>`
                     : '';
@@ -355,6 +375,8 @@
             document.getElementById('inputStatus').value = member.status || 'ጀምረዋል';
             document.getElementById('inputForm').value = member.form || 'ሞልተዋል';
             document.getElementById('inputCaller').value = member.caller || '';
+            document.getElementById('inputUsername').value = member.username || '';
+            document.getElementById('inputPassword').value = member.password || '';
             document.getElementById('memberModal').classList.remove('hidden');
         }
 
@@ -366,13 +388,18 @@
             e.preventDefault();
             if(currentUserRole !== 'admin') return;
             const id = document.getElementById('memberId').value;
+            const uname = document.getElementById('inputUsername').value.trim();
+            const pass = document.getElementById('inputPassword').value.trim();
+
             const data = {
                 name: document.getElementById('inputName').value,
                 phone: document.getElementById('inputPhone').value,
                 dept: document.getElementById('inputDept').value,
                 status: document.getElementById('inputStatus').value,
                 form: document.getElementById('inputForm').value,
-                caller: document.getElementById('inputCaller').value
+                caller: document.getElementById('inputCaller').value,
+                username: uname,
+                password: pass
             };
 
             if(id) {
@@ -380,6 +407,15 @@
             } else {
                 await rtdb.ref('members').push(data);
             }
+
+            // Save user login credentials if provided
+            if (uname && pass) {
+                await rtdb.ref('users/' + uname).set({
+                    password: pass,
+                    role: 'caller'
+                });
+            }
+
             closeModal();
         }
 
