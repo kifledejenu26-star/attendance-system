@@ -57,6 +57,10 @@
                     <button id="uploadBtn" onclick="document.getElementById('excelFile').click()" class="bg-emerald-600 active:bg-emerald-700 text-white p-3 md:px-4 md:py-2.5 rounded-xl font-medium shadow-sm text-xs md:text-sm flex items-center justify-center gap-2">
                         📁 Excel ጫን
                     </button>
+                    <!-- NEW EXCEL DOWNLOAD BUTTON -->
+                    <button onclick="exportToExcel()" class="bg-slate-800 active:bg-slate-900 text-white p-3 md:px-4 md:py-2.5 rounded-xl font-medium shadow-sm text-xs md:text-sm flex items-center justify-center gap-2">
+                        📥 Excel አውርድ
+                    </button>
                 </div>
             </div>
 
@@ -210,7 +214,8 @@
             }
 
             data.forEach((item) => {
-                const statusBadge = item.status === 'ጀምረዋል'
+                const isStarted = item.status && item.status.includes('ጀምረዋል');
+                const statusBadge = isStarted
                     ? `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-semibold">ጀምረዋል</span>`
                     : `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-xs font-semibold">አልጀመሩም</span>`;
 
@@ -241,9 +246,9 @@
 
         function updateMetrics(data) {
             document.getElementById('totalCount').innerText = data.length;
-            document.getElementById('startedCount').innerText = data.filter(d => d.status === 'ጀምረዋል').length;
-            document.getElementById('notStartedCount').innerText = data.filter(d => d.status === 'አልጀመሩም').length;
-            document.getElementById('formCount').innerText = data.filter(d => d.form === 'ሞልተዋል').length;
+            document.getElementById('startedCount').innerText = data.filter(d => d.status && d.status.includes('ጀምረዋል')).length;
+            document.getElementById('notStartedCount').innerText = data.filter(d => !d.status || d.status.includes('አልጀመሩም')).length;
+            document.getElementById('formCount').innerText = data.filter(d => d.form && d.form.includes('ሞልተዋል')).length;
         }
 
         function openAddModal() {
@@ -294,7 +299,7 @@
             closeModal();
         }
 
-        // Handle Excel File Upload
+        // Improved Excel Import Logic
         function handleFile(e) {
             const file = e.target.files[0];
             const reader = new FileReader();
@@ -313,18 +318,57 @@
             const updates = {};
             data.forEach(row => {
                 const newKey = rtdb.ref().child('members').push().key;
+
+                // Handle status string properly
+                let rawStatus = String(row['ሁኔታ'] || row['Status'] || '').trim();
+                let parsedStatus = "አልጀመሩም";
+                if(rawStatus.includes('ጀምረዋል') || rawStatus.toLowerCase() === 'started' || rawStatus === '1') {
+                    parsedStatus = "ጀምረዋል";
+                }
+
+                // Handle form string properly
+                let rawForm = String(row['ፎርም'] || row['Form'] || '').trim();
+                let parsedForm = "አልሞሉም";
+                if(rawForm.includes('ሞልተዋል') || rawForm.toLowerCase() === 'filled' || rawForm === '1') {
+                    parsedForm = "ሞልተዋል";
+                }
+
                 updates['/members/' + newKey] = {
                     name: row['ስም'] || row['Name'] || '',
                     phone: String(row['ስልክ'] || row['Phone'] || ''),
                     dept: row['ክፍል'] || row['Department'] || 'ያልተመደበ',
-                    status: row['ሁኔታ'] || row['Status'] || 'አልጀመሩም',
-                    form: row['ፎርም'] || row['Form'] || 'አልሞሉም',
+                    status: parsedStatus,
+                    form: parsedForm,
                     caller: row['ደዋይ'] || row['Caller'] || ''
                 };
             });
+
             rtdb.ref().update(updates).then(() => {
-                alert("ኤክሴል መረጃው በስኬት ተጭኗል!");
+                alert("የኤክሴል መረጃው በስኬት ተጭኗል!");
             });
+        }
+
+        // Export Function to Download Excel File
+        function exportToExcel() {
+            if(membersData.length === 0) {
+                alert("የሚወርድ መረጃ የለም!");
+                return;
+            }
+
+            const exportFormat = membersData.map((m, index) => ({
+                "ተ.ቁ": index + 1,
+                "ስም": m.name || '',
+                "ስልክ": m.phone || '',
+                "ክፍል": m.dept || '',
+                "ሁኔታ": m.status || '',
+                "ቋሚ ፎርም": m.form || '',
+                "ደዋይ": m.caller || ''
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportFormat);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "የአባላት ዝርዝር");
+            XLSX.writeFile(workbook, "የአባላት_ዝርዝር.xlsx");
         }
 
         function renderDepartmentButtons() {
