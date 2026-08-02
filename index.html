@@ -2,132 +2,104 @@
 <html lang="am">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>የአባላት መቆጣጠሪያ ዌብሳይት</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>የአባላት መቆጣጠሪያ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Firebase Realtime Database Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
-<body class="bg-slate-100 font-sans text-gray-800">
+<body class="bg-slate-100 font-sans text-gray-800 pb-20 md:pb-0">
 
-    <div class="flex h-screen overflow-hidden">
-        <!-- Sidebar -->
-        <div class="w-64 bg-slate-900 text-white flex flex-col justify-between p-5 shadow-xl">
+    <!-- Mobile Top Header -->
+    <div class="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md md:hidden">
+        <h1 class="font-bold text-lg">👥 የአባላት ሲስተም</h1>
+        <span id="mobileRoleBadge" class="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-300 font-medium">አድሚን</span>
+    </div>
+
+    <div class="flex flex-col md:flex-row h-screen overflow-hidden">
+        <!-- Sidebar for Desktop -->
+        <div class="hidden md:flex w-64 bg-slate-900 text-white flex-col justify-between p-5 shadow-xl">
             <div>
                 <div class="flex items-center gap-3 mb-8">
                     <div class="p-2 bg-blue-600 rounded-lg text-white font-bold text-xl">👥</div>
                     <div>
-                        <h1 class="text-lg font-bold tracking-wide">የአባላት ሲስተም</h1>
+                        <h1 class="text-lg font-bold">የአባላት ሲስተም</h1>
                         <span id="userRoleBadge" class="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-medium">አድሚን</span>
                     </div>
                 </div>
                 <nav class="space-y-2">
-                    <button onclick="setActiveTab('all')" id="tab-all" class="w-full text-left px-4 py-3 bg-blue-600 rounded-lg font-medium shadow-md transition-all">
+                    <button onclick="setActiveTab('all')" id="tab-all" class="w-full text-left px-4 py-3 bg-blue-600 rounded-lg font-medium shadow-md">
                         📊 ሁሉም አባላት
                     </button>
-                    <div class="pt-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">የክፍሎች ዝርዝር</div>
-                    <div id="deptButtons" class="space-y-1 max-h-80 overflow-y-auto pr-1">
-                        <!-- Department buttons will load here -->
-                    </div>
+                    <div class="pt-4 text-xs font-semibold text-slate-400 uppercase">የክፍሎች ዝርዝር</div>
+                    <div id="deptButtons" class="space-y-1 max-h-80 overflow-y-auto pr-1"></div>
                 </nav>
-            </div>
-            <div class="text-xs text-slate-500 border-t border-slate-800 pt-4">
-                © 2026 የአባላት መከታተያ ሲስተም
             </div>
         </div>
 
         <!-- Main Content -->
-        <div class="flex-1 overflow-y-auto p-8">
-            <!-- Header -->
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div class="flex-1 overflow-y-auto p-4 md:p-8">
+            <!-- Header Controls -->
+            <div class="flex flex-col gap-3 mb-6">
                 <div>
-                    <h2 id="pageTitle" class="text-2xl font-bold text-gray-800">የአባላት መከታተያ ዳሽቦርድ</h2>
-                    <p class="text-gray-500 text-sm">የአባላት ምደባ፣ ሁኔታ እና ቁጥጥር መድረክ</p>
+                    <h2 id="pageTitle" class="text-xl md:text-2xl font-bold text-gray-800">የአባላት መከታተያ ዳሽቦርድ</h2>
+                    <p class="text-gray-500 text-xs md:text-sm">የአባላት ምደባ እና ሁኔታ መከታተያ</p>
                 </div>
                 
-                <div class="flex flex-wrap gap-3">
-                    <!-- Buttons available for BOTH Admin and Callers -->
-                    <button id="addBtn" onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition flex items-center gap-2">
-                        ➕ አዲስ አባል መዝግብ
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-2 md:flex gap-2">
+                    <button id="addBtn" onclick="openAddModal()" class="bg-blue-600 active:bg-blue-700 text-white p-3 md:px-4 md:py-2.5 rounded-xl font-medium shadow-sm text-xs md:text-sm flex items-center justify-center gap-2">
+                        ➕ አባል መዝግብ
                     </button>
                     <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden" onchange="handleFile(event)">
-                    <button id="uploadBtn" onclick="document.getElementById('excelFile').click()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition flex items-center gap-2">
-                        📁 Excel ፋይል ጫን
-                    </button>
-                    <!-- Share link available for Admin -->
-                    <button id="shareLinkBtn" onclick="copyCallerLink()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition flex items-center gap-2">
-                        🔗 የደዋዮች ሊንክ ኮፒ አድርግ
+                    <button id="uploadBtn" onclick="document.getElementById('excelFile').click()" class="bg-emerald-600 active:bg-emerald-700 text-white p-3 md:px-4 md:py-2.5 rounded-xl font-medium shadow-sm text-xs md:text-sm flex items-center justify-center gap-2">
+                        📁 Excel ጫን
                     </button>
                 </div>
             </div>
 
             <!-- Summary Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                    <p class="text-gray-500 text-sm font-medium">ጠቅላላ አባላት</p>
-                    <h3 id="totalCount" class="text-3xl font-bold text-slate-800 mt-1">0</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200">
+                    <p class="text-gray-500 text-xs font-medium">ጠቅላላ</p>
+                    <h3 id="totalCount" class="text-xl md:text-3xl font-bold text-slate-800 mt-1">0</h3>
                 </div>
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                    <p class="text-gray-500 text-sm font-medium">ሥራ የጀመሩ</p>
-                    <h3 id="startedCount" class="text-3xl font-bold text-emerald-600 mt-1">0</h3>
+                <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200">
+                    <p class="text-gray-500 text-xs font-medium">የጀመሩ</p>
+                    <h3 id="startedCount" class="text-xl md:text-3xl font-bold text-emerald-600 mt-1">0</h3>
                 </div>
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                    <p class="text-gray-500 text-sm font-medium">ያልጀመሩ</p>
-                    <h3 id="notStartedCount" class="text-3xl font-bold text-rose-500 mt-1">0</h3>
+                <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200">
+                    <p class="text-gray-500 text-xs font-medium">ያልጀመሩ</p>
+                    <h3 id="notStartedCount" class="text-xl md:text-3xl font-bold text-rose-500 mt-1">0</h3>
                 </div>
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                    <p class="text-gray-500 text-sm font-medium">ቋሚ ፎርም የሞሉ</p>
-                    <h3 id="formCount" class="text-3xl font-bold text-blue-600 mt-1">0</h3>
-                </div>
-            </div>
-
-            <!-- Search and Filter Bar -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-wrap gap-4 justify-between items-center">
-                <div class="relative flex-1 max-w-md">
-                    <input type="text" id="searchInput" oninput="filterData()" placeholder="በስም ወይም በስልክ ቁጥር ፈልግ..." class="w-full border border-slate-300 rounded-xl px-4 py-2.5 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                    <span class="absolute left-3 top-3 text-gray-400">🔍</span>
-                </div>
-                <div class="text-sm text-gray-500 font-medium">
-                    የታዩ አባላት፦ <span id="visibleCount" class="text-blue-600 font-bold">0</span>
+                <div class="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200">
+                    <p class="text-gray-500 text-xs font-medium">ፎርም የሞሉ</p>
+                    <h3 id="formCount" class="text-xl md:text-3xl font-bold text-blue-600 mt-1">0</h3>
                 </div>
             </div>
 
-            <!-- Table -->
-            <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead class="bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider border-b border-slate-200">
-                            <tr>
-                                <th class="p-4">ተ.ቁ</th>
-                                <th class="p-4">ሙሉ ስም</th>
-                                <th class="p-4">ስልክ ቁጥር</th>
-                                <th class="p-4">የተመደቡበት ክፍል</th>
-                                <th class="p-4">ሁኔታ</th>
-                                <th class="p-4">ቋሚ ፎርም</th>
-                                <th class="p-4">ደዋይ</th>
-                                <th class="p-4 text-center action-col">ተግባር (Action)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBody" class="divide-y divide-slate-100 text-sm text-slate-600">
-                            <tr>
-                                <td colspan="8" class="p-8 text-center text-gray-400 font-medium">
-                                    እባክዎን ከላይ "Excel ፋይል ጫን" የሚለውን በመጫን የላኩትን ፋይል ያስገቡ።
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <!-- Search Bar -->
+            <div class="mb-4">
+                <input type="text" id="searchInput" oninput="filterData()" placeholder="🔍 በስም ወይም በስልክ ቁጥር ፈልግ..." class="w-full border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+
+            <!-- Cards View -->
+            <div id="membersContainer" class="space-y-3">
+                <div class="text-center py-8 text-gray-400">መረጃ በመጫን ላይ ነው...</div>
             </div>
         </div>
     </div>
 
-    <!-- Modal for Adding/Editing Member -->
-    <div id="memberModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 transform transition-all">
-            <div class="flex justify-between items-center border-b pb-4 mb-4">
+    <!-- Modal Form -->
+    <div id="memberModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-end md:items-center justify-center p-0 md:p-4 z-50">
+        <div class="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl max-w-lg w-full p-5 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
                 <h3 id="modalTitle" class="text-lg font-bold text-slate-800">አዲስ አባል መመዝገቢያ</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+                <button onclick="closeModal()" class="text-gray-400 text-2xl font-bold">&times;</button>
             </div>
-            <form id="memberForm" onsubmit="saveMember(event)" class="space-y-4">
+            <form id="memberForm" onsubmit="saveMember(event)" class="space-y-3">
                 <input type="hidden" id="memberId">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">ሙሉ ስም</label>
@@ -136,24 +108,24 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">ስልክ ቁጥር</label>
-                        <input type="text" id="inputPhone" required class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input type="tel" id="inputPhone" required class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">የተመደቡበት ክፍል</label>
-                        <input type="text" id="inputDept" required class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="ምሳሌ፦ ግቢ ጉባዔ">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">ክፍል</label>
+                        <input type="text" id="inputDept" required class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">ሁኔታ (Status)</label>
-                        <select id="inputStatus" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">ሁኔታ</label>
+                        <select id="inputStatus" class="w-full border rounded-lg px-3 py-2 text-sm">
                             <option value="ጀምረዋል">ጀምረዋል</option>
                             <option value="አልጀመሩም">አልጀመሩም</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">ቋሚ ፎርም</label>
-                        <select id="inputForm" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <select id="inputForm" class="w-full border rounded-lg px-3 py-2 text-sm">
                             <option value="ሞልተዋል">ሞልተዋል</option>
                             <option value="አልሞሉም">አልሞሉም</option>
                         </select>
@@ -161,165 +133,108 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">ደዋይ / አስተባባሪ</label>
-                    <input type="text" id="inputCaller" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <input type="text" id="inputCaller" class="w-full border rounded-lg px-3 py-2 text-sm">
                 </div>
-                <div class="flex justify-end gap-3 border-t pt-4 mt-6">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-gray-50">ሰርዝ</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 shadow-md">መዝግብ/አስቀምጥ</button>
+                <div class="flex justify-end gap-2 border-t pt-4 mt-4">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2.5 border rounded-xl text-sm font-medium">ሰርዝ</button>
+                    <button type="submit" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium shadow-md">አስቀምጥ</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
+        // FIREBASE CONFIG WITH REALTIME DATABASE URL
+        const firebaseConfig = {
+            apiKey: "AIzaSyAUC7UbNJoxzKdD2nB8j4ptl_PfAAGn3w4",
+            authDomain: "attendance-app-edbbb.firebaseapp.com",
+            databaseURL: "https://attendance-app-edbbb-default-rtdb.firebaseio.com",
+            projectId: "attendance-app-edbbb",
+            storageBucket: "attendance-app-edbbb.firebasestorage.app",
+            messagingSenderId: "594751308584",
+            appId: "1:594751308584:web:215994b22038c8b137061d",
+            measurementId: "G-1LKVTZ60VP"
+        };
+
+        // Initialize Firebase Realtime Database
+        firebase.initializeApp(firebaseConfig);
+        const rtdb = firebase.database();
+
         let membersData = [];
         let currentFilterDept = 'all';
         let isAdmin = true;
 
-        // Determine user role based on URL parameter (?role=caller)
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const role = urlParams.get('role');
-            
-            if (role === 'caller') {
+            if (urlParams.get('role') === 'caller') {
                 isAdmin = false;
-                document.getElementById('userRoleBadge').innerText = "ደዋይ (ተከታታይ)";
-                document.getElementById('userRoleBadge').className = "text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-medium";
-                
-                // Hide share link button for callers
-                document.getElementById('shareLinkBtn').classList.add('hidden');
+                document.getElementById('userRoleBadge').innerText = "ደዋይ";
+                document.getElementById('mobileRoleBadge').innerText = "ደዋይ";
             }
+            listenToRealtimeUpdates();
         };
 
-        function copyCallerLink() {
-            const baseUrl = window.location.href.split('?')[0];
-            const callerUrl = `${baseUrl}?role=caller`;
-            navigator.clipboard.writeText(callerUrl);
-            alert("🔗 የደዋዮች ሊንክ ኮፒ ተደርጓል!\n\nይህንን ሊንክ ለደዋዮች መላክ ትችላለህ፦\n" + callerUrl);
-        }
-
-        function handleFile(e) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const data = new Uint8Array(evt.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                
+        // Realtime Sync
+        function listenToRealtimeUpdates() {
+            rtdb.ref('members').on('value', (snapshot) => {
                 membersData = [];
-                const sheet = workbook.Sheets['All'] || workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1});
-
-                let autoId = 1;
-                jsonData.forEach((row) => {
-                    if (row[2] && row[2] !== 'members name' && row[2] !== 'management folloup sheet') {
-                        membersData.push({
-                            id: autoId++,
-                            name: String(row[2]).trim(),
-                            phone: row[3] ? String(row[3]).trim() : '-',
-                            dept: row[4] ? String(row[4]).trim() : 'ያልተገለጸ',
-                            status: row[6] && String(row[6]).includes('ጀምረዋል') ? 'ጀምረዋል' : 'አልጀመሩም',
-                            form: row[10] && String(row[10]).includes('ሞልተዋል') ? 'ሞልተዋል' : 'አልሞሉም',
-                            caller: row[12] ? String(row[12]).trim() : '-'
-                        });
-                    }
-                });
-
+                const data = snapshot.val();
+                if(data) {
+                    Object.keys(data).forEach(key => {
+                        membersData.push({ id: key, ...data[key] });
+                    });
+                }
                 renderDepartmentButtons();
-                setActiveTab('all');
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function renderDepartmentButtons() {
-            const depts = [...new Set(membersData.map(m => m.dept).filter(Boolean))];
-            const container = document.getElementById('deptButtons');
-            container.innerHTML = '';
-
-            depts.forEach(d => {
-                container.innerHTML += `
-                    <button onclick="setActiveTab('${d}')" id="tab-${d}" class="w-full text-left px-3 py-2 hover:bg-slate-800 rounded-lg text-sm text-slate-300 transition-all flex justify-between items-center">
-                        <span class="truncate">${d}</span>
-                        <span class="bg-slate-800 text-xs px-2 py-0.5 rounded-full text-slate-400">${membersData.filter(m=>m.dept===d).length}</span>
-                    </button>
-                `;
+                filterData();
             });
-        }
-
-        function setActiveTab(dept) {
-            currentFilterDept = dept;
-            document.querySelectorAll('#deptButtons button, #tab-all').forEach(btn => {
-                btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
-                btn.classList.add('text-slate-300');
-            });
-
-            const activeBtn = document.getElementById(dept === 'all' ? 'tab-all' : `tab-${dept}`);
-            if(activeBtn) {
-                activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
-                activeBtn.classList.remove('text-slate-300');
-            }
-
-            document.getElementById('pageTitle').innerText = dept === 'all' ? 'የአባላት መከታተያ ዳሽቦርድ' : `ክፍል፦ ${dept}`;
-            filterData();
         }
 
         function filterData() {
             const search = document.getElementById('searchInput').value.toLowerCase();
-
             const filtered = membersData.filter(item => {
                 const matchesDept = currentFilterDept === 'all' || item.dept === currentFilterDept;
-                const matchesSearch = item.name.toLowerCase().includes(search) || item.phone.includes(search);
+                const matchesSearch = (item.name || '').toLowerCase().includes(search) || (item.phone || '').includes(search);
                 return matchesDept && matchesSearch;
             });
-
-            renderTable(filtered);
+            renderCards(filtered);
             updateMetrics(filtered);
         }
 
-        function renderTable(data) {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
-
-            // Toggle Edit column visibility based on role
-            document.querySelectorAll('.action-col').forEach(el => {
-                el.style.display = isAdmin ? 'table-cell' : 'none';
-            });
+        function renderCards(data) {
+            const container = document.getElementById('membersContainer');
+            container.innerHTML = '';
 
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-gray-400 font-medium">ምንም አባል አልተገኘም።</td></tr>`;
+                container.innerHTML = `<div class="bg-white p-6 rounded-xl text-center text-gray-400 font-medium">ምንም አባል አልተገኘም።</div>`;
                 return;
             }
 
-            data.forEach((item, index) => {
-                const statusBadge = item.status === 'ጀምረዋል' 
-                    ? `<span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-semibold">ጀምረዋል</span>`
-                    : `<span class="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full text-xs font-semibold">አልጀመሩም</span>`;
+            data.forEach((item) => {
+                const statusBadge = item.status === 'ጀምረዋል'
+                    ? `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-semibold">ጀምረዋል</span>`
+                    : `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-xs font-semibold">አልጀመሩም</span>`;
 
-                const formBadge = item.form === 'ሞልተዋል'
-                    ? `<span class="text-blue-600 font-medium">✓ ሞልተዋል</span>`
-                    : `<span class="text-gray-400">✕ አልሞሉም</span>`;
-
-                // Only Admin gets the Edit button in table rows
-                const actionTd = isAdmin 
-                    ? `<td class="p-4 text-center action-col">
-                        <button onclick="openEditModal(${item.id})" class="text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-blue-50 transition">
-                            ✏️ ኤዲት
-                        </button>
-                      </td>`
+                const editBtn = isAdmin 
+                    ? `<button onclick="openEditModal('${item.id}')" class="text-blue-600 font-bold text-xs bg-blue-50 px-3 py-1.5 rounded-lg">✏️ ኤዲት</button>`
                     : '';
 
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 transition">
-                        <td class="p-4 font-medium text-gray-500">${index + 1}</td>
-                        <td class="p-4 font-bold text-slate-800">${item.name}</td>
-                        <td class="p-4 font-mono text-gray-600">
-                            <a href="tel:${item.phone}" class="text-blue-600 hover:underline">📞 ${item.phone}</a>
-                        </td>
-                        <td class="p-4">${item.dept}</td>
-                        <td class="p-4">${statusBadge}</td>
-                        <td class="p-4">${formBadge}</td>
-                        <td class="p-4">${item.caller}</td>
-                        ${actionTd}
-                    </tr>
+                container.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-slate-800 text-base">${item.name}</h4>
+                                ${statusBadge}
+                            </div>
+                            <p class="text-xs text-gray-500">ክፍል፦ ${item.dept || '-'} | ቋሚ ፎርም፦ ${item.form || '-'}</p>
+                            <p class="text-xs text-gray-400">ደዋይ፦ ${item.caller || '-'}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a href="tel:${item.phone}" class="bg-emerald-50 text-emerald-600 p-2.5 rounded-xl font-bold text-sm flex items-center gap-1">
+                                📞 ደውል
+                            </a>
+                            ${editBtn}
+                        </div>
+                    </div>
                 `;
             });
         }
@@ -329,10 +244,8 @@
             document.getElementById('startedCount').innerText = data.filter(d => d.status === 'ጀምረዋል').length;
             document.getElementById('notStartedCount').innerText = data.filter(d => d.status === 'አልጀመሩም').length;
             document.getElementById('formCount').innerText = data.filter(d => d.form === 'ሞልተዋል').length;
-            document.getElementById('visibleCount').innerText = data.length;
         }
 
-        // --- Modal Logic ---
         function openAddModal() {
             document.getElementById('modalTitle').innerText = "አዲስ አባል መመዝገቢያ";
             document.getElementById('memberForm').reset();
@@ -341,19 +254,18 @@
         }
 
         function openEditModal(id) {
-            if(!isAdmin) return; // Block caller edit attempts
+            if(!isAdmin) return;
             const member = membersData.find(m => m.id === id);
             if(!member) return;
 
-            document.getElementById('modalTitle').innerText = "የአባል መረጃ ማስተካከያ (Edit)";
+            document.getElementById('modalTitle').innerText = "የአባል መረጃ ኤዲት ማድረጊያ";
             document.getElementById('memberId').value = member.id;
-            document.getElementById('inputName').value = member.name;
-            document.getElementById('inputPhone').value = member.phone;
-            document.getElementById('inputDept').value = member.dept;
-            document.getElementById('inputStatus').value = member.status;
-            document.getElementById('inputForm').value = member.form;
-            document.getElementById('inputCaller').value = member.caller;
-
+            document.getElementById('inputName').value = member.name || '';
+            document.getElementById('inputPhone').value = member.phone || '';
+            document.getElementById('inputDept').value = member.dept || '';
+            document.getElementById('inputStatus').value = member.status || 'ጀምረዋል';
+            document.getElementById('inputForm').value = member.form || 'ሞልተዋል';
+            document.getElementById('inputCaller').value = member.caller || '';
             document.getElementById('memberModal').classList.remove('hidden');
         }
 
@@ -361,36 +273,76 @@
             document.getElementById('memberModal').classList.add('hidden');
         }
 
-        function saveMember(e) {
+        async function saveMember(e) {
             e.preventDefault();
-
             const id = document.getElementById('memberId').value;
-            const name = document.getElementById('inputName').value;
-            const phone = document.getElementById('inputPhone').value;
-            const dept = document.getElementById('inputDept').value;
-            const status = document.getElementById('inputStatus').value;
-            const form = document.getElementById('inputForm').value;
-            const caller = document.getElementById('inputCaller').value;
+            const data = {
+                name: document.getElementById('inputName').value,
+                phone: document.getElementById('inputPhone').value,
+                dept: document.getElementById('inputDept').value,
+                status: document.getElementById('inputStatus').value,
+                form: document.getElementById('inputForm').value,
+                caller: document.getElementById('inputCaller').value
+            };
 
             if(id) {
-                // Edit existing (Admin only)
                 if(!isAdmin) return;
-                const index = membersData.findIndex(m => m.id == id);
-                if(index !== -1) {
-                    membersData[index] = { id: Number(id), name, phone, dept, status, form, caller };
-                }
+                await rtdb.ref('members/' + id).update(data);
             } else {
-                // Add new member (Allowed for BOTH Admin and Callers)
-                const newMember = {
-                    id: Date.now(),
-                    name, phone, dept, status, form, caller
-                };
-                membersData.push(newMember);
+                await rtdb.ref('members').push(data);
             }
-
-            renderDepartmentButtons();
-            filterData();
             closeModal();
+        }
+
+        // Handle Excel File Upload
+        function handleFile(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                
+                batchUploadToFirebase(jsonData);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function batchUploadToFirebase(data) {
+            const updates = {};
+            data.forEach(row => {
+                const newKey = rtdb.ref().child('members').push().key;
+                updates['/members/' + newKey] = {
+                    name: row['ስም'] || row['Name'] || '',
+                    phone: String(row['ስልክ'] || row['Phone'] || ''),
+                    dept: row['ክፍል'] || row['Department'] || 'ያልተመደበ',
+                    status: row['ሁኔታ'] || row['Status'] || 'አልጀመሩም',
+                    form: row['ፎርም'] || row['Form'] || 'አልሞሉም',
+                    caller: row['ደዋይ'] || row['Caller'] || ''
+                };
+            });
+            rtdb.ref().update(updates).then(() => {
+                alert("ኤክሴል መረጃው በስኬት ተጭኗል!");
+            });
+        }
+
+        function renderDepartmentButtons() {
+            const depts = [...new Set(membersData.map(m => m.dept).filter(Boolean))];
+            const container = document.getElementById('deptButtons');
+            container.innerHTML = '';
+            depts.forEach(d => {
+                container.innerHTML += `
+                    <button onclick="setActiveTab('${d}')" class="w-full text-left px-3 py-2 hover:bg-slate-800 rounded-lg text-sm text-slate-300">
+                        ${d} (${membersData.filter(m=>m.dept===d).length})
+                    </button>
+                `;
+            });
+        }
+
+        function setActiveTab(dept) {
+            currentFilterDept = dept;
+            filterData();
         }
     </script>
 </body>
